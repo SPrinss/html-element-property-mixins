@@ -3,8 +3,14 @@
   <head>
     <script type="module">
       import { ObservedProperties } from '../src/observed-properties-mixin.js';
+      import {html, render as litRender} from 'lit-html'
       
       class DemoElement extends ObservedProperties(HTMLElement) {
+
+        constructor() {
+          super();
+          this.attachShadow({mode: 'open'});
+        }
 
         static get observedProperties() {
           return ['firstName', 'lastName', 'age', 'friends']
@@ -12,7 +18,7 @@
 
         propertyChangedCallback(propName, oldValue, newValue) {
           console.info(`propertyChangedCallback, ${propName} changed from ${oldValue} to ${newValue}`);
-          this.innerHTML = `
+          this.shadowRoot.innerHTML = `
             Hello, ${this.firstName} ${this.lastName} (${this.age} years)
           `
         }
@@ -28,17 +34,66 @@
       }
 
       window.customElements.define('demo-element', DemoElement);
+
+      class DemoWrapperEl extends ObservedProperties(HTMLElement) {
+        constructor() {
+          super();
+
+          this.attachShadow({mode: 'open'});
+
+          window.setTimeout(() => {
+            this.renderOutsideCallback()
+          }, 300);
+        }
+        
+        get template() {
+          return html`
+
+          <h1>Rendered with lit-html</h1>
+          <demo-element
+            id="demo"
+          ></demo-element>
+          <demo-element
+            id="demo2"
+          ></demo-element>          
+          `
+        }
+        
+        renderOutsideCallback() {
+          litRender(this.template, this.shadowRoot, {eventContext: this});
+
+          const demoEl = this.shadowRoot.getElementById('demo')
+          const demo2El = this.shadowRoot.getElementById('demo2')
+          demoEl.firstName = 'John';
+          demoEl.lastName = 'Doe';
+          demoEl.age = '50';
+          demo2El.firstName = 'Sam';
+          demo2El.lastName = 'Prinssen';
+          demo2El.age = '12'; 
+          litRender(this.template, this.shadowRoot, {eventContext: this});
+
+        }
+      }
+      window.customElements.define('demo-wrapper-el', DemoWrapperEl);
     </script>
   </head>
 
   <body>
+    <h1>Rendered without lit-html</h1>
+
     <demo-element id="demo"></demo-element>
+    <demo-element id="demo2"></demo-element>
 
     <script>
       demo.firstName = 'John';
       demo.lastName = 'Doe';
       demo.age = '50';
+      demo2.firstName = 'Sam';
+      demo2.lastName = 'Prinssen';
+      demo2.age = '12';      
     </script>
+
+    <demo-wrapper-el></demo-wrapper-el>
 
 </body>
 </html>

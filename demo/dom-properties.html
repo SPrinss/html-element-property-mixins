@@ -4,9 +4,15 @@
     <script type="module">
       import { DOMProperties } from '../src/dom-properties-mixin.js';
       import { StringConverter, NumberConverter, BooleanConverter, ObjectConverter } from '../../src/utils/attribute-converters/index.js';
+      import {html, render as litRender} from 'lit-html'
       
       class DemoElement extends DOMProperties(HTMLElement) {
 
+        constructor() {
+          super()
+          this.attachShadow({mode: 'open'});
+
+        }
         static get DOMProperties() {
           return ['firstName', 'married', 'age', 'friends']
         }
@@ -28,7 +34,7 @@
 
         attributeChangedCallback(attrName, oldValue, newValue) {
           super.attributeChangedCallback(attrName, oldValue, newValue);
-          this.innerHTML = `
+          this.shadowRoot.innerHTML = `
             Hello, ${this.firstName}!<br>
             You are ${this.age} years old and ${this.married ? 'married' : 'single'}.<br>
             Your friends are ${this.friends}.
@@ -46,15 +52,63 @@
       }
 
       window.customElements.define('demo-element', DemoElement);
+
+      class DemoWrapperEl extends DOMProperties(HTMLElement) {
+        constructor() {
+          super();
+
+          this.attachShadow({mode: 'open'});
+          window.setTimeout(() => {
+            this.renderOutsideCallback()
+          }, 300);
+        }
+        
+        get template() {
+          return html`
+
+          <h1>Rendered with lit-html</h1>
+          <demo-element
+            age="10"
+            first-name="John"
+            married
+            friends='["Matthew", "Jane", "Alicia"]'
+            married
+          ></demo-element>
+
+          <demo-element
+            age="31"
+            first-name="Sam"
+            friends='["Matthew"]'
+          ></demo-element>          
+          `
+        }
+        
+        renderOutsideCallback() {
+          litRender(this.template, this.shadowRoot, {eventContext: this});
+        }
+      }
+      window.customElements.define('demo-wrapper-el', DemoWrapperEl);
     </script>
   </head>
 
   <body>
+    <h1>Rendered without lit-html</h1>
+
     <demo-element
       age="10"
       first-name="John"
       married
       friends='["Matthew", "Jane", "Alicia"]'
     ></demo-element>
+
+    <demo-element
+      age="31"
+      first-name="Sam"
+      friends='["Matthew"]'
+    ></demo-element>   
+
+
+    <demo-wrapper-el></demo-wrapper-el>
+
 </body>
 </html>
